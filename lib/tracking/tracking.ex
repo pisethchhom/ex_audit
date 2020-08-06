@@ -1,4 +1,5 @@
 defmodule ExAudit.Tracking do
+
   def find_changes(action, struct_or_changeset, resulting_struct) do
     old =
       case {action, struct_or_changeset} do
@@ -78,7 +79,15 @@ defmodule ExAudit.Tracking do
 
       _ ->
         opts = Keyword.drop(opts, [:on_conflict, :conflict_target])
-        module.insert_all(version_schema(), changes, opts)
+
+        vs = version_schema()
+        changes = Enum.map(changes, &(vs.changeset(vs, &1)))
+
+        result = module.insert_all(version_schema(), changes, opts ++ [returning: true])
+
+        vs.on_success(opts, result)
+
+        result
     end
   end
 
